@@ -8,10 +8,12 @@
   --blue: #2563eb;
   --red: #ef4444;
   --accent: #0ea5e9;
-  font-family: ui-sans-serif, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+  font-family: ui-sans-serif, -apple-system, Segoe UI, Roboto, Helvetica, Arial,
+    sans-serif;
 }
 
-html, body {
+html,
+body {
   margin: 0;
   height: 100%;
   background: var(--bg);
@@ -61,7 +63,12 @@ html, body {
   outline: none;
 }
 
-.row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
 
 .inp {
   flex: 1;
@@ -74,7 +81,12 @@ html, body {
   outline: none;
 }
 
-.rd { display: flex; align-items: center; gap: 6px; margin-right: 10px; }
+.rd {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-right: 10px;
+}
 
 .btn {
   padding: 8px 12px;
@@ -85,14 +97,23 @@ html, body {
   cursor: pointer;
   font-weight: 700;
 }
-.btn:disabled { opacity: .6; cursor: not-allowed; }
-.run { background: var(--blue); border-color: var(--blue); }
-.stop { background: var(--red); border-color: var(--red); }
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+.run {
+  background: var(--blue);
+  border-color: var(--blue);
+}
+.stop {
+  background: var(--red);
+  border-color: var(--red);
+}
 
 .count {
   font-size: 28px;
   font-weight: 800;
-  letter-spacing: .5px;
+  letter-spacing: 0.5px;
 }
 
 .log {
@@ -106,4 +127,8 @@ html, body {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 12px;
   white-space: pre-wrap;
+}
+
+.invalid-link {
+  color: var(--red);
 }

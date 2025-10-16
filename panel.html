@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8" />
+    <title>X Post Runner Panel</title>
+    <link rel="stylesheet" href="panel.css" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+  </head>
+
+  <body>
+    <header class="hdr">
+      <div class="title">X Post Runner <span class="badge">v2.0</span></div>
+    </header>
+
+    <main class="main">
+      <section>
+        <div class="lbl">Dán link X (mỗi dòng 1 link)</div>
+        <textarea
+          id="links"
+          class="ta"
+          placeholder="
+          https://x.com/username/status/123
+          https://x.com/another/status/456
+          "
+        >
+        </textarea>
+      </section>
+
+      <section>
+        <div class="lbl">Chọn API</div>
+        <div class="row">
+          <label class="rd"
+            ><input type="radio" name="model" value="gemini" checked />
+            Gemini</label
+          >
+          <label class="rd"
+            ><input type="radio" name="model" value="chatgpt" /> ChatGPT</label
+          >
+          <input
+            id="apikey"
+            class="inp"
+            type="password"
+            placeholder="API Key (tuỳ chọn)"
+          />
+        </div>
+      </section>
+      <section>
+        <div class="lbl">Prompt gửi AI</div>
+        <textarea
+          id="prompt"
+          class="ta"
+          placeholder="Viết một phản hồi ngắn, thân thiện, có lý lẽ..."
+        ></textarea>
+      </section>
+      <section>
+        <div class="lbl">Chọn hành động</div>
+        <div class="row">
+          <label class="rd"
+            ><input type="checkbox" id="act-like" checked /> Like (Tym)</label
+          >
+          <label class="rd"
+            ><input type="checkbox" id="act-repost" checked /> Repost</label
+          >
+          <label class="rd"
+            ><input type="checkbox" id="act-comment" checked /> Comment</label
+          >
+        </div>
+      </section>
+
+      <section class="row">
+        <button id="run" class="btn run">Run</button>
+        <button id="stop" class="btn stop">Stop</button>
+      </section>
+
+      <section>
+        <div class="lbl">Đếm ngược</div>
+        <div id="countdown" class="count">—</div>
+      </section>
+
+      <section>
+        <div class="lbl">Log</div>
+        <pre id="log" class="log"></pre>
+      </section>
+      <section>
+        <div class="lbl">Copyright by DevDustin</div>
+        <div class="lbl">
+          Donate: 0x7407cfeff757ef8a5a5af8b44bbd57eba95087a2 - USDT - BSC Chain
+        </div>
+      </section>
+    </main>
+
+    <script src="panel.js"></script>
+  </body>
+</html>

@@ -1,0 +1,24 @@
+{
+  "manifest_version": 3,
+  "name": "X Post Runner (Side Panel)",
+  "version": "2.0.2",
+  "description": "Side Panel cố định…",
+  "permissions": ["scripting","tabs", "storage", "alarms", "sidePanel", "webNavigation"],
+  "host_permissions": [
+    "https://x.com/*",
+    "https://twitter.com/*",
+    "*://*.x.com/*",
+    "*://*.twitter.com/*",
+    "<all_urls>"
+  ],
+  "background": { "service_worker": "background.js", "type": "module" },
+  "action": { "default_title": "Open X Post Runner Panel" },
+  "side_panel": { "default_path": "panel.html" },
+
+  "web_accessible_resources": [
+    {
+      "resources": ["inpage_runner.js"],
+      "matches": ["<all_urls>"]
+    }
+  ]
+}

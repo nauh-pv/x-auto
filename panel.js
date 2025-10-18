@@ -1,6 +1,7 @@
 const $ = (s) => document.querySelector(s);
 
 const linksEl = $("#links");
+const scrapeDiscordBtn = $("#scrape-discord");
 const totalLinksLabel = $("#total-links");
 const totalLinksFailLabel = $("#total-links-fail");
 const runBtn = $("#run");
@@ -76,6 +77,52 @@ function filterAndCleanLinks() {
   };
 }
 
+function scrapeLinksFromDiscord() {
+  chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+    const tab = tabs[0];
+    if (tab.url.includes("discord.com")) {
+      chrome.scripting.executeScript(
+        {
+          target: { tabId: tab.id },
+          func: extractLinksFromDiscord
+        },
+        (results) => {
+          const links = results[0]?.result || [];
+          if (links.length > 0) {
+            linksEl.value = links.join("\n");
+            countLinks()
+            log(`Đã cào ${links.length} link từ Discord.`);
+          } else {
+            log("Không tìm thấy link hợp lệ trong kênh Discord.");
+          }
+        }
+      );
+    } else {
+      log("Hãy mở kênh Discord để cào link.");
+    }
+  });
+}
+
+function extractLinksFromDiscord() {
+  const links = [];
+  const messages = document.querySelectorAll('.contents_c19a55');
+
+  messages.forEach((message) => {
+    const content = message.querySelector('.anchor_edefb8')?.innerText; 
+
+    if (content) {
+      const regex = /https:\/\/x\.com\/[^\s]+/g;
+      const matches = content.match(regex);
+      if (matches) {
+        links.push(...matches);
+      }
+    }
+  });
+  
+  return [...new Set(links)];
+}
+
+
 const countLinks = () => {
   const links = filterAndCleanLinks();
   totalLinksLabel.textContent = `Valid links: ${links.validLinkNumber}`;
@@ -145,6 +192,7 @@ stopBtn.addEventListener("click", () => {
 });
 
 linksEl.addEventListener("input", countLinks);
+scrapeDiscordBtn.addEventListener("click", scrapeLinksFromDiscord);
 
 chrome.runtime.onMessage.addListener((msg) => {
   switch (msg?.type) {

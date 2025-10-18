@@ -9,7 +9,7 @@
 
   <body>
     <header class="hdr">
-      <div class="title">X Post Runner <span class="badge">v2.0</span></div>
+      <div class="title">X Post Runner <span class="badge">v2.1</span></div>
     </header>
 
     <main class="main">
@@ -27,16 +27,37 @@
         <textarea
           id="links"
           class="ta"
-          placeholder="
-          https://x.com/username/status/123
-          https://x.com/another/status/456
-          "
+          placeholder="https://x.com/username/status/123"
         >
         </textarea>
       </section>
 
       <section>
         <button id="scrape-discord" class="btn">Cào link từ Discord</button>
+      </section>
+
+      <!-- <section>
+        <div class="lbl">Các link chạy lỗi</div>
+        <textarea
+          id="failed-links"
+          class="ta"
+          placeholder="Danh sách các link lỗi sẽ xuất hiện ở đây..."
+        ></textarea>
+        <button id="retry-btn" class="btn">Chạy lại các link lỗi</button>
+      </section> -->
+
+      <section>
+        <div class="lbl">Xóa các bài viết từ username:</div>
+        <input
+          type="text"
+          class="input"
+          style="height: fit-content"
+          id="username-input"
+          placeholder="Nhập username của X"
+        />
+        <button id="deleteLinksBtn" class="btn">
+          Xóa bài viết từ người dùng
+        </button>
       </section>
 
       <section>

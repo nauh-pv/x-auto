@@ -41,6 +41,7 @@ body {
 
 .main {
   padding: 12px;
+  margin-right: 16px;
   display: grid;
   gap: 12px;
 }
@@ -131,4 +132,16 @@ body {
 
 .invalid-link {
   color: var(--red);
+}
+
+.input {
+  width: 100%;
+  resize: vertical;
+  background: #0f1218;
+  border: 1px solid var(--border);
+  color: #d9e1ee;
+  border-radius: 8px;
+  padding: 8px;
+  outline: none;
+  margin-bottom: 8px;
 }

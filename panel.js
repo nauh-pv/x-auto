@@ -12,6 +12,9 @@ const promptEl = $("#prompt");
 const actLikeEl = $("#act-like");
 const actRepostEl = $("#act-repost");
 const actCommentEl = $("#act-comment");
+const failedLinksEl = $("#failed-links");
+const usernameInput = $("#username-input");
+const deleteLinksBtn = $("#deleteLinksBtn");
 
 let tmr = null;
 function startCountdown(sec) {
@@ -84,13 +87,13 @@ function scrapeLinksFromDiscord() {
       chrome.scripting.executeScript(
         {
           target: { tabId: tab.id },
-          func: extractLinksFromDiscord
+          func: extractLinksFromDiscord,
         },
         (results) => {
           const links = results[0]?.result || [];
           if (links.length > 0) {
             linksEl.value = links.join("\n");
-            countLinks()
+            countLinks();
             log(`Đã cào ${links.length} link từ Discord.`);
           } else {
             log("Không tìm thấy link hợp lệ trong kênh Discord.");
@@ -105,23 +108,24 @@ function scrapeLinksFromDiscord() {
 
 function extractLinksFromDiscord() {
   const links = [];
-  const messages = document.querySelectorAll('.contents_c19a55');
+  const messages = document.querySelectorAll(".contents_c19a55");
 
   messages.forEach((message) => {
-    const content = message.querySelector('.anchor_edefb8')?.innerText; 
+    // Lấy tất cả các thẻ <a> trong tin nhắn
+    const anchorTags = message.querySelectorAll("a");
 
-    if (content) {
+    // Duyệt qua từng thẻ <a> và lấy thuộc tính href
+    anchorTags.forEach((anchor) => {
+      const url = anchor.href;
       const regex = /https:\/\/x\.com\/[^\s]+/g;
-      const matches = content.match(regex);
-      if (matches) {
-        links.push(...matches);
+      if (regex.test(url)) {
+        links.push(url);
       }
-    }
+    });
   });
-  
+
   return [...new Set(links)];
 }
-
 
 const countLinks = () => {
   const links = filterAndCleanLinks();
@@ -130,6 +134,15 @@ const countLinks = () => {
     links.totalLinkNumber - links.validLinkNumber
   }`;
 };
+
+function addFailedLink(url) {
+  const failedLinks = failedLinksEl.value.split("\n").filter(Boolean);
+
+  if (!failedLinks.includes(url)) {
+    failedLinks.push(url);
+    failedLinksEl.value = failedLinks.join("\n");
+  }
+}
 
 chrome.runtime.sendMessage({ type: "PANEL_READY" }, (resp) => {
   if (!resp?.ok) return;
@@ -154,7 +167,7 @@ chrome.runtime.sendMessage({ type: "PANEL_READY" }, (resp) => {
 
 runBtn.addEventListener("click", () => {
   const links = filterAndCleanLinks();
-  const { validLinks } = links;
+  const validLinks = links.validLinks;
 
   if (validLinks.length === 0) {
     log("Không có link hợp lệ để chạy.");
@@ -189,6 +202,7 @@ stopBtn.addEventListener("click", () => {
   chrome.runtime.sendMessage({ type: "STOP" }, (resp) => {
     if (resp?.ok) log("Đã gửi lệnh dừng.");
   });
+  countLinks();
 });
 
 linksEl.addEventListener("input", countLinks);
@@ -228,4 +242,23 @@ chrome.runtime.onMessage.addListener((msg) => {
       runBtn.disabled = false;
       break;
   }
+});
+
+deleteLinksBtn.addEventListener("click", () => {
+  const username = usernameInput.value.trim();
+  if (!username) {
+    log("Vui lòng nhập username của X.");
+    return;
+  }
+
+  // Lọc các link bài viết từ người dùng đó
+  const links = filterAndCleanLinks();
+  const filteredLinks = links.validLinks.filter(
+    (link) => !link.includes(`/${username}`)
+  );
+
+  linksEl.value = filteredLinks.join("\n");
+  countLinks();
+
+  log(`Đã xóa bài viết của người dùng @${username} khỏi danh sách.`);
 });

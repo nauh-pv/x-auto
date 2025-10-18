@@ -153,7 +153,10 @@ async function callChatGPT({ apiKey, prompt }) {
 }
 
 async function askAI({ model, apiKey, userPrompt, tweetText }) {
-  const prompt = (input) => userPrompt ? `${userPrompt} Here's the post content: "${input}"` :  `
+  const prompt = (input) =>
+    userPrompt
+      ? `${userPrompt} Here's the post content: "${input}"`
+      : `
 Create content for my comment on an X post—brief, under 100 characters; return only the content, no extra sentences; focus on the post and keep it on point.
 Here's the post content: "${input}"
 `;
@@ -249,7 +252,7 @@ async function runUserScriptOnTab(tabId, aiText, actions) {
             15000
           );
 
-          const toType = (textToType || "").trim();
+          const toType = textToType.trim() || "";
 
           if (editor && toType) {
             editor.focus();
@@ -306,6 +309,97 @@ async function runUserScriptOnTab(tabId, aiText, actions) {
   return res || { ok: false, error: "no result from injected script" };
 }
 
+async function waitForSelectorInPage(tabId, selector, timeoutMs = 15000) {
+  const start = Date.now();
+  while (Date.now() - start < timeoutMs) {
+    try {
+      const [{ result } = {}] = await chrome.scripting.executeScript({
+        target: { tabId },
+        world: "MAIN",
+        func: (sel) => !!document.querySelector(sel),
+        args: [selector],
+      });
+      if (result) return true;
+    } catch {}
+    await new Promise((r) => setTimeout(r, 400));
+  }
+  return false;
+}
+
+//check splash + reload/skip
+async function isStuckSplash(tabId) {
+  try {
+    const [{ result } = {}] = await chrome.scripting.executeScript({
+      target: { tabId },
+      world: "MAIN",
+      func: () => {
+        const hasTweet = !!document.querySelector('[data-testid="retweet"]');
+        const hasLike = !!document.querySelector('button[data-testid="like"]');
+        const hasReply = !!document.querySelector(
+          '[data-testid="tweetTextarea_0"]'
+        );
+        const bodyChildrenFew =
+          document.body && document.body.children.length <= 2;
+        const isBlackBg =
+          getComputedStyle(document.body).backgroundColor === "rgb(0, 0, 0)" ||
+          getComputedStyle(document.body).backgroundColor ===
+            "rgb(255, 255, 255)";
+        const maybeLogo = !!document.querySelector('svg[aria-label="X"]');
+        return !hasTweet && !hasLike && !hasReply && bodyChildrenFew;
+      },
+    });
+    return !!result;
+  } catch {
+    return false;
+  }
+}
+
+async function ensureTweetDOMReady(tabId, maxReload = 2) {
+  const okFirst =
+    (await waitForSelectorInPage(tabId, '[data-testid="retweet"]', 8000)) ||
+    (await waitForSelectorInPage(tabId, 'button[data-testid="like"]', 2500)) ||
+    (await waitForSelectorInPage(
+      tabId,
+      '[data-testid="tweetTextarea_0_label"]',
+      2500
+    ));
+
+  if (okFirst) return true;
+
+  for (let i = 0; i < maxReload; i++) {
+    const stuck = await isStuckSplash(tabId);
+    if (!stuck) break;
+
+    await postToPanel({
+      type: "LOG",
+      message: `⚠️ Trang X kẹt splash. Reload ${i + 1}/${maxReload}...`,
+    });
+    try {
+      await chrome.tabs.reload(tabId, { bypassCache: true });
+    } catch {}
+    try {
+      await waitForNavReady(tabId, 20000);
+    } catch {}
+    await new Promise((r) => setTimeout(r, 1200));
+
+    const ok =
+      (await waitForSelectorInPage(tabId, '[data-testid="retweet"]', 8000)) ||
+      (await waitForSelectorInPage(
+        tabId,
+        'button[data-testid="like"]',
+        2500
+      )) ||
+      (await waitForSelectorInPage(
+        tabId,
+        '[data-testid="tweetTextarea_0_label"]',
+        2500
+      ));
+
+    if (ok) return true;
+  }
+  return false; // vẫn kẹt
+}
+
 async function openCurrent() {
   if (!STATE.running) return;
 
@@ -343,6 +437,34 @@ async function openCurrent() {
   } catch (_) {
     // bỏ qua, vẫn tiếp tục
   }
+
+  // const ready = await ensureTweetDOMReady(tab.id, 2);
+  // if (!ready) {
+  //   await postToPanel({
+  //     type: "LOG",
+  //     message: "⏭️ Trang X kẹt splash, bỏ qua link này.",
+  //   });
+
+  //   try {
+  //     await chrome.tabs.remove(tab.id);
+  //   } catch {}
+  //   await postToPanel({
+  //     type: "FINISHED_ONE",
+  //     index: STATE.index,
+  //     url: STATE.currentUrl,
+  //     total: STATE.queue.length,
+  //   });
+
+  //   STATE.index += 1;
+  //   STATE.currentTabId = null;
+  //   STATE.currentUrl = null;
+
+  //   await chrome.alarms.create(alarmNameNext(STATE.runId), {
+  //     delayInMinutes: STATE.waitGapMin,
+  //   });
+  //   return; // dừng xử lý link hiện tại
+  // }
+
   // Lấy text tweet (nếu fail thì vẫn tiếp tục)
   await postToPanel({
     type: "LOG",
@@ -419,7 +541,9 @@ async function openCurrent() {
     url,
     index: STATE.index,
     total: STATE.queue.length,
-    waitSeconds: Math.round((Math.random() * (STATE.waitCloseMin - 0.1) + 0.1) * 60),
+    waitSeconds: Math.round(
+      (Math.random() * (STATE.waitCloseMin - 0.1) + 0.1) * 60
+    ),
   });
 }
 
@@ -446,7 +570,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         await clearAllAlarms();
         resetState();
 
-        const urls = (Array.isArray(msg.urls) ? msg.urls : [])
+        const urls = (Array.isArray(msg.validLinks) ? msg.validLinks : [])
           .map((s) => (s || "").trim())
           .filter(Boolean)
           .map((s) => s.replace(/^twitter\.com/i, "https://twitter.com/"))
@@ -473,7 +597,10 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         });
 
         if (!STATE.running) {
-          await postToPanel({ type: "LOG", message: "Danh sách link trống." });
+          await postToPanel({
+            type: "LOG",
+            message: `Danh sách link trống.`,
+          });
           sendResponse({ ok: false });
           return;
         }

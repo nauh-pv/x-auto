@@ -259,3 +259,44 @@ function togglePanel() {
 chrome.runtime.onMessage.addListener((msg) => {
   if (msg?.type === "TOGGLE_PANEL") togglePanel();
 });
+
+// content.js
+document.addEventListener("DOMContentLoaded", function () {
+  // Kiểm tra nếu đây là một bài post trên Twitter
+  const isTwitterPage = window.location.href.includes("x.com");
+
+  if (isTwitterPage) {
+    // Lấy tất cả bình luận trên bài viết
+    const comments = document.querySelectorAll('div[data-testid="tweetText"]'); // Lọc bình luận
+
+    let usernames = [];
+
+    comments.forEach((comment) => {
+      // Tìm thẻ chứa username (thường là <a> chứa đường dẫn đến trang cá nhân)
+      const userElement = comment
+        .closest("article")
+        .querySelector("div > div > div > div > a");
+
+      if (userElement) {
+        const username = userElement.getAttribute("href"); // Lấy href chứa username
+        const usernameExtracted = username.replace(/^\/([^/]+)$/, "$1"); // Lấy username từ href (nếu có)
+
+        if (usernameExtracted && !usernames.includes(usernameExtracted)) {
+          usernames.push(usernameExtracted); // Thêm username vào danh sách
+        }
+      }
+    });
+
+    // Gửi danh sách username về background.js
+    chrome.runtime.sendMessage(
+      { type: "EXTRACTED_USERNAMES", usernames },
+      (response) => {
+        if (response?.ok) {
+          console.log("Đã cào username:", usernames);
+        } else {
+          console.log("Không thể cào username.");
+        }
+      }
+    );
+  }
+});

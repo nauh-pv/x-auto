@@ -7,11 +7,11 @@ const STATE = {
   currentTabId: null,
   currentUrl: null,
   waitCloseMin: 0.4, // chạy 30 giây
-  waitGapMin: 0.2, // nghỉ 1 phút rồi mở link kế
   model: "gemini", // <-- mới
   apiKey: "", // <-- mới
   prompt: "", // <-- mới
   actions: { like: true, repost: true, comment: true },
+  selectedDelay: 60,
 };
 
 async function postToPanel(msg) {
@@ -413,6 +413,29 @@ async function openCurrent() {
   const url = STATE.queue[STATE.index];
   const thisRun = STATE.runId;
 
+  // await new Promise((resolve) => {
+  //   chrome.alarms.create(alarmNameNext(thisRun), {
+  //     delayInMinutes: STATE.selectedDelay / 60, // Chuyển giây thành phút
+  //   });
+
+  //   chrome.alarms.onAlarm.addListener((alarm) => {
+  //     if (alarm.name === alarmNameNext(thisRun)) {
+  //       resolve(); // Khi alarm tới thì tiếp tục chạy
+  //     }
+  //   });
+  // });
+
+  // Hiển thị thông báo ngay khi bắt đầu xử lý
+  await postToPanel({
+    type: "PROCESSING",
+    url,
+    index: STATE.index,
+    total: STATE.queue.length,
+    waitSeconds: Math.round(
+      (Math.random() * (STATE.waitCloseMin - 0.1) + 0.1) * 60
+    ),
+  });
+
   // B1) MỞ TAB (nếu fail bước này mới coi là "Không thể mở tab")
   let tab;
   try {
@@ -437,33 +460,6 @@ async function openCurrent() {
   } catch (_) {
     // bỏ qua, vẫn tiếp tục
   }
-
-  // const ready = await ensureTweetDOMReady(tab.id, 2);
-  // if (!ready) {
-  //   await postToPanel({
-  //     type: "LOG",
-  //     message: "⏭️ Trang X kẹt splash, bỏ qua link này.",
-  //   });
-
-  //   try {
-  //     await chrome.tabs.remove(tab.id);
-  //   } catch {}
-  //   await postToPanel({
-  //     type: "FINISHED_ONE",
-  //     index: STATE.index,
-  //     url: STATE.currentUrl,
-  //     total: STATE.queue.length,
-  //   });
-
-  //   STATE.index += 1;
-  //   STATE.currentTabId = null;
-  //   STATE.currentUrl = null;
-
-  //   await chrome.alarms.create(alarmNameNext(STATE.runId), {
-  //     delayInMinutes: STATE.waitGapMin,
-  //   });
-  //   return; // dừng xử lý link hiện tại
-  // }
 
   // Lấy text tweet (nếu fail thì vẫn tiếp tục)
   await postToPanel({
@@ -507,7 +503,7 @@ async function openCurrent() {
     });
   }
 
-  // B4) ĐẶT ALARM ĐÓNG + GỬI PROCESSING (luôn luôn làm, kể cả inject fail)
+  // B4) ĐẶT ALARM ĐÓNG
   try {
     await chrome.alarms.create(alarmNameClose(thisRun), {
       delayInMinutes: STATE.waitCloseMin,
@@ -536,15 +532,6 @@ async function openCurrent() {
       });
     }
   } catch (_) {}
-  await postToPanel({
-    type: "PROCESSING",
-    url,
-    index: STATE.index,
-    total: STATE.queue.length,
-    waitSeconds: Math.round(
-      (Math.random() * (STATE.waitCloseMin - 0.1) + 0.1) * 60
-    ),
-  });
 }
 
 // ==== Messages từ panel ====
@@ -638,6 +625,11 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         break;
       }
 
+      case "SET_DELAY": {
+        STATE.selectedDelay = msg.selectedDelay;
+        break;
+      }
+
       default:
         sendResponse({ ok: false });
     }
@@ -652,6 +644,7 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
   // Chỉ xử lý alarm đúng với runId hiện tại
   const closePrefix = "xrunner-close-";
   const nextPrefix = "xrunner-next-";
+  const time = STATE.selectedDelay / 60;
 
   if (name.startsWith(closePrefix)) {
     const runFromAlarm = Number(name.slice(closePrefix.length));
@@ -676,7 +669,7 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
     STATE.currentUrl = null;
 
     await chrome.alarms.create(alarmNameNext(runFromAlarm), {
-      delayInMinutes: STATE.waitGapMin,
+      delayInMinutes: time,
     });
   }
 
@@ -708,7 +701,7 @@ chrome.tabs.onRemoved.addListener(async (tabId) => {
   STATE.currentUrl = null;
 
   await chrome.alarms.create(alarmNameNext(STATE.runId), {
-    delayInMinutes: STATE.waitGapMin,
+    delayInMinutes: STATE.selectedDelay / 60,
   });
 });
 
@@ -721,3 +714,5 @@ chrome.action.onClicked.addListener(async (tab) => {
     await chrome.sidePanel.open({ windowId: tab.windowId });
   } catch (_) {}
 });
+
+//<Script crawl data

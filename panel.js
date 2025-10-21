@@ -15,7 +15,13 @@ const actCommentEl = $("#act-comment");
 const failedLinksEl = $("#failed-links");
 const usernameInput = $("#username-input");
 const deleteLinksBtn = $("#deleteLinksBtn");
+const usernameListEl = $("#username-list");
+const crawlUsernameBtn = $("#btn-crawl-username");
+const actSpeedEl = $('input[name="speed"]');
+const customSpeedEl = $("custom-speed");
 
+let selectedDelay = 0;
+let countdown = 3;
 let tmr = null;
 function startCountdown(sec) {
   clearInterval(tmr);
@@ -42,6 +48,10 @@ function log(line) {
   const ts = new Date().toLocaleTimeString();
   logEl.textContent += `[${ts}] ${line}\n`;
   logEl.scrollTop = logEl.scrollHeight;
+}
+
+function getRandomInRange(min, max) {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
 function removeLineByUrl(textarea, url) {
@@ -185,17 +195,21 @@ runBtn.addEventListener("click", () => {
     comment: actCommentEl?.checked !== false,
   };
 
-  chrome.runtime.sendMessage(
-    { type: "START", validLinks, model, apiKey, prompt, actions },
-    (resp) => {
-      if (resp?.ok) {
-        log("Đã bắt đầu.");
-        runBtn.disabled = true;
-      } else {
-        log("Không thể bắt đầu. Kiểm tra danh sách link.");
+  startCountdown(countdown);
+
+  setTimeout(() => {
+    chrome.runtime.sendMessage(
+      { type: "START", validLinks, model, apiKey, prompt, actions },
+      (resp) => {
+        if (resp?.ok) {
+          log("Đã bắt đầu.");
+          runBtn.disabled = true;
+        } else {
+          log("Không thể bắt đầu. Kiểm tra danh sách link.");
+        }
       }
-    }
-  );
+    );
+  }, countdown * 1000);
 });
 
 stopBtn.addEventListener("click", () => {
@@ -216,14 +230,15 @@ chrome.runtime.onMessage.addListener((msg) => {
 
     case "PROCESSING":
       log(`▶️ Đang xử lý (${msg.index + 1}/${msg.total}): ${msg.url}`);
-      startCountdown(msg.waitSeconds); // 3 phút
+      randomTimeDelay();
+      // startCountdown(msg.waitSeconds);
       break;
 
     case "FINISHED_ONE":
       log(`✅ Đã hoàn thành (${msg.index + 1}/${msg.total}): ${msg.url}`);
-      removeLineByUrl(linksEl, msg.url); // xóa dòng đã chạy
-      // lúc này background sẽ tự đặt hẹn 1 phút để mở link kế
-      startCountdown(10); // hiển thị đếm 1 phút nghỉ
+      removeLineByUrl(linksEl, msg.url);
+      log(`Delay ${selectedDelay} giây để chạy link tiếp.`);
+      startCountdown(selectedDelay);
       break;
 
     case "FINISHED_ALL":
@@ -262,3 +277,31 @@ deleteLinksBtn.addEventListener("click", () => {
 
   log(`Đã xóa bài viết của người dùng @${username} khỏi danh sách.`);
 });
+
+const randomTimeDelay = () => {
+  const selectedValue = document.querySelector(
+    'input[name="speed"]:checked'
+  ).value;
+
+  switch (selectedValue) {
+    case "fast":
+      selectedDelay = getRandomInRange(15, 20);
+      break;
+    case "medium":
+      selectedDelay = getRandomInRange(30, 40);
+      break;
+    case "slow":
+      selectedDelay = getRandomInRange(60, 80);
+      break;
+    case "custom":
+      if (customSpeedEl.value) {
+        selectedDelay = parseInt(customSpeedEl.value);
+      }
+      break;
+  }
+
+  chrome.runtime.sendMessage({
+    type: "SET_DELAY",
+    selectedDelay: selectedDelay,
+  });
+};

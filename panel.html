@@ -36,15 +36,15 @@
         <button id="scrape-discord" class="btn">Cào link từ Discord</button>
       </section>
 
-      <!-- <section>
-        <div class="lbl">Các link chạy lỗi</div>
+      <section>
+        <div class="lbl">List username</div>
         <textarea
-          id="failed-links"
+          id="username-list"
           class="ta"
           placeholder="Danh sách các link lỗi sẽ xuất hiện ở đây..."
         ></textarea>
-        <button id="retry-btn" class="btn">Chạy lại các link lỗi</button>
-      </section> -->
+        <button id="btn-crawl-username" class="btn">Cào username</button>
+      </section>
 
       <section>
         <div class="lbl">Xóa các bài viết từ username:</div>
@@ -109,6 +109,34 @@
       <section>
         <div class="lbl">Đếm ngược</div>
         <div id="countdown" class="count">—</div>
+      </section>
+
+      <section>
+        <div class="lbl">Chọn tốc độ xử lý:</div>
+        <div class="row">
+          <label class="rd">
+            <input type="radio" name="speed" value="fast" checked /> Nhanh
+            (15-20s)
+          </label>
+          <label class="rd">
+            <input type="radio" name="speed" value="medium" /> Trung bình
+            (30-40s)
+          </label>
+          <label class="rd">
+            <input type="radio" name="speed" value="slow" /> Chậm (60-80s)
+          </label>
+          <label class="rd">
+            <input type="radio" name="speed" value="custom" /> Tùy chỉnh
+          </label>
+          <input
+            id="custom-speed"
+            class="inp"
+            type="number"
+            placeholder="Nhập thời gian (giây)"
+            min="10"
+            max="200"
+          />
+        </div>
       </section>
 
       <section>
